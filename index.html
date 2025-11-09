@@ -749,3 +749,1132 @@
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
+  <script>
+    // STORAGE MANAGEMENT
+    const STORAGE_KEYS = {
+      bp: 'dash.bp.readings',
+      meds: 'dash.medications',
+      meals: 'dash.meals',
+      weight: 'dash.weight',
+      exercise: 'dash.exercise'
+    };
+
+    function saveData(key, data) {
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+        return { success: true };
+      } catch (error) {
+        console.error('Storage error:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    function loadData(key, defaultValue = []) {
+      try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : defaultValue;
+      } catch (error) {
+        return defaultValue;
+      }
+    }
+
+    function saveBPReading(systolic, diastolic, notes = '') {
+      const readings = loadData(STORAGE_KEYS.bp);
+      readings.unshift({
+        systolic: parseInt(systolic),
+        diastolic: parseInt(diastolic),
+        notes: notes,
+        timestamp: new Date().toISOString(),
+        id: Date.now()
+      });
+      if (readings.length > 100) readings.length = 100;
+      return saveData(STORAGE_KEYS.bp, readings);
+    }
+
+    function getBPReadings(limit = null) {
+      const readings = loadData(STORAGE_KEYS.bp);
+      return limit ? readings.slice(0, limit) : readings;
+    }
+
+    function deleteBPReading(id) {
+      const readings = loadData(STORAGE_KEYS.bp);
+      const filtered = readings.filter(r => r.id !== id);
+      saveData(STORAGE_KEYS.bp, filtered);
+      showBPHistory();
+    }
+
+    function classifyBP(systolic, diastolic) {
+      if (systolic < 120 && diastolic < 80) return { status: 'Normal', class: 'bp-normal' };
+      if (systolic >= 120 && systolic <= 129 && diastolic < 80) return { status: 'Elevated', class: 'bp-elevated' };
+      if ((systolic >= 130 && systolic <= 139) || (diastolic >= 80 && diastolic <= 89)) {
+        return { status: 'Stage 1', class: 'bp-stage1' };
+      }
+      if (systolic >= 140 || diastolic >= 90) return { status: 'Stage 2', class: 'bp-stage2' };
+      if (systolic > 180 || diastolic > 120) return { status: 'Crisis!', class: 'bp-crisis' };
+      return { status: 'Check', class: '' };
+    }
+
+    function getAverageBP(days = 7) {
+      const readings = getBPReadings();
+      if (!readings.length) return null;
+
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const recent = readings.filter(r => new Date(r.timestamp) > cutoff);
+
+      if (!recent.length) return null;
+
+      const avgSys = Math.round(recent.reduce((sum, r) => sum + r.systolic, 0) / recent.length);
+      const avgDia = Math.round(recent.reduce((sum, r) => sum + r.diastolic, 0) / recent.length);
+
+      return { systolic: avgSys, diastolic: avgDia, count: recent.length };
+    }
+
+    // MODAL MANAGEMENT
+    let navigationHistory = [];
+    let currentSection = null;
+
+    function openModal(title, content) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = content;
+      const modal = document.getElementById('modal');
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('backBtn').style.display = navigationHistory.length > 0 ? 'flex' : 'none';
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modal');
+      modal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+      navigationHistory = [];
+      currentSection = null;
+    }
+
+    function navigateToSub(subFunction, ...args) {
+      if (currentSection) navigationHistory.push(currentSection);
+      currentSection = subFunction;
+      subFunction(...args);
+    }
+
+    function goBack() {
+      if (navigationHistory.length > 0) {
+        const prev = navigationHistory.pop();
+        currentSection = prev;
+        prev();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const modal = document.getElementById('modal');
+      if (modal) {
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) closeModal();
+        });
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('modal');
+        if (modal && modal.classList.contains('active')) closeModal();
+      }
+    });
+
+    // AI COACH
+    function openAICoach() {
+      currentSection = openAICoach;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigateToSub(showAIChat)">
+            <i class="fas fa-comments"></i>
+            <h4>Chat with AI</h4>
+            <p>Ask health questions</p>
+          </div>
+          <div class="feature-card" onclick="navigateToSub(showPersonalPlans)">
+            <i class="fas fa-clipboard-list"></i>
+            <h4>Personal Plans</h4>
+            <p>Customized for you</p>
+          </div>
+          <div class="feature-card" onclick="navigateToSub(showHealthAnalysis)">
+            <i class="fas fa-chart-bar"></i>
+            <h4>Health Analysis</h4>
+            <p>Your insights</p>
+          </div>
+          <div class="feature-card" onclick="navigateToSub(showMotivation)">
+            <i class="fas fa-fire"></i>
+            <h4>Motivation</h4>
+            <p>Daily inspiration</p>
+          </div>
+        </div>
+      `;
+      openModal('AI Health Coach', content);
+    }
+
+    function showAIChat() {
+      const content = `
+        <div class="ai-chat" id="chatContainer">
+          <div class="chat-message ai">
+            Hello! I'm your AI Health Coach specialized in the DASH diet for adults over 50. How can I help you today?
+          </div>
+        </div>
+        <div class="quick-questions">
+          <button class="quick-btn" onclick="askQuestion('bp')">💓 Lower BP</button>
+          <button class="quick-btn" onclick="askQuestion('diet')">🥗 DASH Diet</button>
+          <button class="quick-btn" onclick="askQuestion('exercise')">🏃 Exercise</button>
+          <button class="quick-btn" onclick="askQuestion('sodium')">🧂 Sodium</button>
+        </div>
+        <div class="chat-input">
+          <input type="text" id="chatInput" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      `;
+      openModal('AI Chat', content);
+      setTimeout(() => document.getElementById('chatInput')?.focus(), 300);
+    }
+
+    function askQuestion(topic) {
+      const questions = {
+        bp: 'How can I lower my blood pressure naturally?',
+        diet: 'What is the DASH diet?',
+        exercise: 'Best exercises for people over 50?',
+        sodium: 'How to reduce sodium intake?'
+      };
+      document.getElementById('chatInput').value = questions[topic];
+      sendMessage();
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      if (!input) return;
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      appendMsg('user', msg);
+      input.value = '';
+
+      const chat = document.getElementById('chatContainer');
+      const typing = document.createElement('div');
+      typing.className = 'chat-message ai';
+      typing.id = 'typing';
+      typing.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+      chat.appendChild(typing);
+      chat.scrollTop = chat.scrollHeight;
+
+      setTimeout(() => {
+        document.getElementById('typing')?.remove();
+        appendMsg('ai', getAIResponse(
+msg.toLowerCase()));
+      }, 1500);
+    }
+
+    function appendMsg(role, text) {
+      const chat = document.getElementById('chatContainer');
+      if (!chat) return;
+      const div = document.createElement('div');
+      div.className = `chat-message ${role}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function getAIResponse(msg) {
+      if (msg.includes('blood pressure') || msg.includes('bp') || msg.includes('hypertension')) {
+        return 'The DASH diet can lower BP by 8-14 mmHg! Key steps: 1) Reduce sodium to <1,500mg/day, 2) Eat 8-10 servings of fruits & vegetables daily, 3) Include 2-3 servings of low-fat dairy, 4) Choose whole grains. Track your BP regularly!';
+      }
+      if (msg.includes('dash') || msg.includes('diet')) {
+        return 'DASH = Dietary Approaches to Stop Hypertension. Focus on: fruits, vegetables, whole grains, lean proteins (fish, poultry), low-fat dairy, nuts, and legumes. Limit: sodium (<1,500mg/day), saturated fats, red meat, and added sugars. Perfect for heart health!';
+      }
+      if (msg.includes('exercise') || msg.includes('workout')) {
+        return 'For adults over 50: aim for 150 min/week of moderate activity (brisk walking, swimming, cycling) OR 75 min vigorous activity. Add strength training 2x/week. Start slowly, warm up properly, and always consult your doctor first!';
+      }
+      if (msg.includes('sodium') || msg.includes('salt')) {
+        return 'To reduce sodium: 1) Cook at home, 2) Read labels (<140mg per serving), 3) Use herbs & spices instead of salt, 4) Avoid processed foods, canned soups, deli meats, 5) Rinse canned vegetables. Daily goal: <1,500mg!';
+      }
+      if (msg.includes('weight') || msg.includes('lose')) {
+        return 'For healthy weight loss: aim for 1-2 lbs/week. Focus on whole foods, control portions, eat more vegetables, choose lean proteins. The DASH diet naturally supports weight loss. Drink water and get 7-9 hours of sleep!';
+      }
+      return 'Great question! The DASH diet focuses on whole, nutritious foods for heart health and blood pressure management. For specific medical advice, consult your healthcare provider. What else would you like to know?';
+    }
+
+    function showPersonalPlans() {
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 16px;">
+            <i class="fas fa-clipboard-list"></i> Personal Health Plans
+          </h3>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <i class="fas fa-calendar-week" style="color: #10B981;"></i>
+              <h4>7-Day Meal Plan</h4>
+              <p>DASH-compliant recipes</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-dumbbell" style="color: #3B82F6;"></i>
+              <h4>Exercise Schedule</h4>
+              <p>Personalized workouts</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-shopping-cart" style="color: #F59E0B;"></i>
+              <h4>Shopping List</h4>
+              <p>DASH-friendly items</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-bullseye" style="color: #EF4444;"></i>
+              <h4>Daily Goals</h4>
+              <p>Track objectives</p>
+            </div>
+          </div>
+          <div class="alert alert-info mt-3">
+            <strong>Coming Soon!</strong> Personalized plans based on your health data and preferences.
+          </div>
+        </div>
+      `;
+      openModal('Personal Plans', content);
+    }
+
+    function showHealthAnalysis() {
+      const avgBP = getAverageBP(30);
+      const bpText = avgBP ? `$${avgBP.systolic}/$$ {avgBP.diastolic}` : 'No data';
+      const bpCount = avgBP ? avgBP.count : 0;
+      
+      let alertClass = 'alert-info';
+      let statusText = 'Start tracking to see insights';
+      
+      if (avgBP) {
+        const classification = classifyBP(avgBP.systolic, avgBP.diastolic);
+        statusText = classification.status;
+        alertClass = classification.class.includes('normal') ? 'alert-success' : 
+                     classification.class.includes('elevated') ? 'alert-warning' : 'alert-danger';
+      }
+      
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 16px;">
+            <i class="fas fa-chart-line"></i> Health Analysis
+          </h3>
+          
+          <div style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); padding: 24px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+            <h4 style="margin-bottom: 12px;">Your Health Score</h4>
+            <div style="font-size: 56px; font-weight: 700; color: var(--success);">
+              ${avgBP ? '85' : '--'}%
+            </div>
+            <div class="progress-bar" style="margin-top: 16px;">
+              <div class="progress-bar-fill" style="width: ${avgBP ? '85' : '0'}%;"></div>
+            </div>
+            <p style="margin-top: 8px; font-size: 14px; color: var(--text-secondary);">
+              ${avgBP ? 'Great progress!' : 'Start tracking'}
+            </p>
+          </div>
+          
+          <div class="stats-card" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);">
+            <i class="fas fa-heart-pulse" style="font-size: 32px; color: #EF4444;"></i>
+            <h4>Average BP (30 days)</h4>
+            <div class="value">${bpText} mmHg</div>
+            <p class="subtitle">${bpCount} readings</p>
+          </div>
+          
+          <div class="alert ${alertClass}">
+            <strong>Status:</strong> ${statusText}
+          </div>
+        </div>
+      `;
+      openModal('Health Analysis', content);
+    }
+
+    function showMotivation() {
+      const quotes = [
+        "Every healthy choice today is an investment in your tomorrow! 💪",
+        "Small steps every day lead to big changes. You're doing great! 🌟",
+        "Your health journey is unique. Celebrate every milestone! 🎉",
+        "Consistency beats perfection. Keep showing up! ✨",
+        "Age is just a number. Health is a choice. You've got this! 🔥",
+        "Progress, not perfection. Every day is a new opportunity! 🌅"
+      ];
+      
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      
+      const content = `
+        <div class="p-2 text-center">
+          <i class="fas fa-star" style="font-size: 72px; color: var(--warning); margin-bottom: 24px; display: block;"></i>
+          <h3 style="margin-bottom: 20px;">Daily Motivation</h3>
+          
+          <div style="background: linear-gradient(135deg, #FEF3C7 0%, #FED7AA 100%); padding: 32px 24px; border-radius: 16px; margin: 24px 0;">
+            <p style="font-size: 20px; line-height: 1.6; font-style: italic; font-weight: 500;">
+              "${quote}"
+            </p>
+          </div>
+          
+          <button class="btn" onclick="showMotivation()">
+            <i class="fas fa-rotate"></i> New Quote
+          </button>
+        </div>
+      `;
+      openModal('Daily Motivation', content);
+    }
+
+    // DASHBOARD
+    function openDashboard() {
+      currentSection = openDashboard;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigateToSub(showDashboardOverview)">
+            <i class="fas fa-chart-pie"></i>
+            <h4>Health Overview</h4>
+            <p>Your stats at a glance</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-trophy"></i>
+            <h4>Achievements</h4>
+            <p>Milestones & badges</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-file-medical"></i>
+            <h4>Reports</h4>
+            <p>Generate summaries</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-bullseye"></i>
+            <h4>Goals</h4>
+            <p>Track objectives</p>
+          </div>
+        </div>
+      `;
+      openModal('Dashboard', content);
+    }
+
+    function showDashboardOverview() {
+      const avgBP = getAverageBP(7);
+      const bpText = avgBP ? `$${avgBP.systolic}/$$ {avgBP.diastolic}` : '--/--';
+      const bpCount = avgBP ? avgBP.count : 0;
+      
+      const content = `
+        <div class="p-2">
+          <div style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+            <h3 style="margin-bottom: 8px;">📊 Weekly Overview</h3>
+            <p style="opacity: 0.9; margin: 0;">Your health summary for the past 7 days</p>
+          </div>
+          
+          <div class="stats-card" style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);">
+            <i class="fas fa-heart-pulse" style="color: #EF4444; font-size: 28px;"></i>
+            <h4>Average BP</h4>
+            <div class="value">${bpText}</div>
+            <p class="subtitle">${bpCount} readings this week</p>
+          </div>
+          
+          <div class="stats-card" style="background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);">
+            <i class="fas fa-calendar-check" style="color: #10B981; font-size: 28px;"></i>
+            <h4>Tracking Streak</h4>
+            <div class="value">7 days</div>
+            <p class="subtitle">Keep it up!</p>
+          </div>
+        </div>
+      `;
+      openModal('Health Overview', content);
+    }
+
+    // EDUCATION
+    function openEducation() {
+      currentSection = openEducation;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigateToSub(showDASHGuide)">
+            <i class="fas fa-book"></i>
+            <h4>DASH Diet Guide</h4>
+            <p>Complete overview</p>
+          </div>
+          <div class="feature-card" onclick="navigateToSub(showBPEducation)">
+            <i class="fas fa-heart-pulse"></i>
+            <h4>Blood Pressure 101</h4>
+            <p>Understanding BP</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-dumbbell"></i>
+            <h4>Exercise Guide</h4>
+            <p>Safe workouts</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-video"></i>
+            <h4>Video Library</h4>
+            <p>Learn visually</p>
+          </div>
+        </div>
+      `;
+      openModal('Education', content);
+    }
+
+    function showDASHGuide() {
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 16px;">🥗 DASH Diet Guide</h3>
+          
+          <div class="alert alert-info">
+            <strong>DASH</strong> = Dietary Approaches to Stop Hypertension
+          </div>
+          
+          <h4 style="margin: 20px 0 10px;">Key Principles:</h4>
+          
+          <div style="padding: 16px; background: #DCFCE7; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #10B981;">
+            <strong style="color: #166534;">✓ Increase:</strong>
+            <p style="margin: 8px 0 0 0; color: #166534;">Fruits, vegetables, whole grains, lean proteins, low-fat dairy, nuts, legumes</p>
+          </div>
+          
+          <div style="padding: 16px; background: #FEF3C7; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #F59E0B;">
+            <strong style="color: #92400E;">⚠ Limit:</strong>
+            <p style="margin: 8px 0 0 0; color: #92400E;">Sodium (<1,500mg/day), saturated fats, red meat, sweets</p>
+          </div>
+          
+          <div style="padding: 16px; background: #FEE2E2; border-radius: 10px; border-left: 4px solid #EF4444;">
+            <strong style="color: #991B1B;">✗ Avoid:</strong>
+            <p style="margin: 8px 0 0 0; color: #991B1B;">Processed foods, sugary drinks, excess salt, trans fats</p>
+          </div>
+          
+          <h4 style="margin: 20px 0 10px;">Daily Serving Goals:</h4>
+          <ul style="line-height: 2; padding-left: 20px;">
+            <li>Fruits: 4-5 servings</li>
+            <li>Vegetables: 4-5 servings</li>
+            <li>Whole grains: 6-8 servings</li>
+            <li>Lean protein: 6 oz or less</li>
+            <li>Low-fat dairy: 2-3 servings</li>
+            <li>Nuts/seeds: 4-5 per week</li>
+          </ul>
+        </div>
+      `;
+      openModal('DASH Diet Guide', content);
+    }
+
+    function showBPEducation() {
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 16px;">💓 Blood Pressure 101</h3>
+          
+          <h4>Understanding Your Numbers:</h4>
+          <div style="background: #F8FAFC; padding: 16px; border-radius: 10px; margin: 16px 0;">
+            <p style="margin-bottom: 12px;"><strong>Systolic (top number):</strong> Pressure when heart beats</p>
+            <p><strong>Diastolic (bottom number):</strong> Pressure between beats</p>
+          </div>
+          
+          <h4 style="margin-top: 20px;">BP Categories (AHA Guidelines):</h4>
+          
+          <div style="padding: 12px; background: #DCFCE7; border-radius: 8px; margin: 10px 0;">
+            <strong style="color: #166534;">Normal:</strong> Less than 120/80 mmHg
+          </div>
+          
+          <div style="padding: 12px; background: #FEF3C7; border-radius: 8px; margin: 10px 0;">
+            <strong style="color: #92400E;">Elevated:</strong> 120-129 and less than 80 mmHg
+          </div>
+          
+          <div style="padding: 12px; background: #FED7AA; border-radius: 8px; margin: 10px 0;">
+            <strong style="color: #9A3412;">Stage 1:</strong> 130-139 or 80-89 mmHg
+          </div>
+          
+          <div style="padding: 12px; background: #FECACA; border-radius: 8px; margin: 10px 0;">
+            <strong style="color: #991B1B;">Stage 2:</strong> 140+ or 90+ mmHg
+          </div>
+          
+          <div style="padding: 12px; background: #FEE2E2; border-radius: 8px; margin: 10px 0;">
+            <strong style="color: #7F1D1D;">Crisis:</strong> 180+ or 120+ mmHg - Seek immediate care!
+          </div>
+          
+          <div class="alert alert-info mt-3">
+            <strong>Tip:</strong> Measure BP at the same time daily for accurate tracking. Rest 5 minutes before measuring.
+          </div>
+        </div>
+      `;
+      openModal('Blood Pressure 101', content);
+    }
+
+    // MEALS
+    function openMeals() {
+      currentSection = openMeals;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigateToSub(showRecipes)">
+            <i class="fas fa-utensils"></i>
+            <h4>Recipe Library</h4>
+            <p>DASH-approved recipes</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-calendar-alt"></i>
+            <h4>Meal Planner</h4>
+            <p>Plan your week</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-shopping-basket"></i>
+            <h4>Shopping Lists</h4>
+            <p>Auto-generated lists</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-calculator"></i>
+            <h4>Nutrition Tracker</h4>
+            <p>Log your meals</p>
+          </div>
+        </div>
+      `;
+      openModal('DASH Meals', content);
+    }
+
+    function showRecipes() {
+      const recipes = [
+        { name: 'Grilled Salmon with Vegetables', cat: 'Dinner', time: '25 min', cals: '320' },
+        { name: 'Oatmeal with Berries', cat: 'Breakfast', time: '10 min', cals: '210' },
+        { name: 'Quinoa Mediterranean Salad', cat: 'Lunch', time: '15 min', cals: '280' },
+        { name: 'Baked Chicken & Sweet Potato', cat: 'Dinner', time: '40 min', cals: '350' },
+        { name: 'Greek Yogurt Parfait', cat: 'Snack', time: '5 min', cals: '150' }
+      ];
+      
+      let html = '<div class="p-2"><h3 style="color: var(--primary); margin-bottom: 16px;">🍽️ Recipe Library</h3>';
+      
+      recipes.forEach(r => {
+        html += `
+          <div class="feature-card" onclick="alert('Recipe details coming soon!')">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <h4>${r.name}</h4>
+                <p>${r.cat} • ${r.time} • ${r.cals} cal</p>
+              </div>
+              <i class="fas fa-chevron-right" style="color: var(--text-secondary); font-size: 14px;"></i>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      openModal('DASH Recipes', html);
+    }
+
+    // BLOOD PRESSURE
+    function openBloodPressure() {
+      currentSection = openBloodPressure;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigateToSub(showAddBP)">
+            <i class="fas fa-plus-circle"></i>
+            <h4>Add Reading</h4>
+            <p>Log new BP measurement</p>
+          </div>
+          <div class="feature-card" onclick="navigateToSub(showBPHistory)">
+            <i class="fas fa-list"></i>
+            <h4>History</h4>
+            <p>View all readings</p>
+          </div>
+          <div class="feature-card" onclick="navigateToSub(showBPStats)">
+            <i class="fas fa-chart-line"></i>
+            <h4>Statistics</h4>
+            <p>Trends & averages</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-bell"></i>
+            <h4>Reminders</h4>
+            <p>Set BP check alerts</p>
+          </div>
+        </div>
+      `;
+      openModal('Blood Pressure Tracker', content);
+    }
+
+    function showAddBP() {
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 20px;">
+            <i class="fas fa-heart-pulse"></i> Add BP Reading
+          </h3>
+          
+          <form onsubmit="handleBPSubmit(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Systolic (top)</label>
+                <input type="number" id="systolic" placeholder="120" min="70" max="250" required>
+              </div>
+              <div class="form-group">
+                <label>Diastolic (bottom)</label>
+                <input type="number" id="diastolic" placeholder="80" min="40" max="150" required>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea id="bpNotes" placeholder="e.g., After exercise, morning reading..." rows="3"></textarea>
+            </div>
+            
+            <button type="submit" class="btn">
+              <i class="fas fa-save"></i> Save Reading
+            </button>
+          </form>
+          
+          <div class="alert alert-info mt-3">
+            <strong>Tip:</strong> For accurate readings, sit quietly for 5 minutes before measuring. Measure at the same time daily.
+          </div>
+        </div>
+      `;
+      openModal('Add BP Reading', content);
+    }
+
+    function handleBPSubmit(e) {
+      e.preventDefault();
+      const sys = document.getElementById('systolic').value;
+      const dia = document.getElementById('diastolic').value;
+      const notes = document.getElementById('bpNotes').value;
+      
+      const result = saveBPReading(sys, dia, notes);
+      
+      if (result.success) {
+        alert(`✅ BP Reading saved: $${sys}/$$ {dia} mmHg`);
+        showBPHistory();
+      } else {
+        alert('❌ Error saving reading. Please try again.');
+      }
+    }
+
+    function showBPHistory() {
+      const readings = getBPReadings(20);
+      
+      if (readings.length === 0) {
+        const content = `
+          <div class="empty-state">
+            <i class="fas fa-heart-pulse"></i>
+            <h3>No Readings Yet</h3>
+            <p>Start tracking your blood pressure</p>
+            <button class="btn mt-3" onclick="navigateToSub(showAddBP)">
+              <i class="fas fa-plus"></i> Add First Reading
+            </button>
+          </div>
+        `;
+        openModal('BP History', content);
+        return;
+      }
+      
+      let html = '<div class="p-2"><h3 style="color: var(--primary); margin-bottom: 16px;">📋 BP History</h3>';
+      
+      readings.forEach(r => {
+        const date = new Date(r.timestamp);
+        const classification = classifyBP(r.systolic, r.diastolic);
+        
+        html += `
+          <div class="bp-reading">
+            <div class="bp-reading-info">
+              <div class="bp-reading-value">$${r.systolic}/$$ {r.diastolic} mmHg</div>
+              <div class="bp-reading-date">$${date.toLocaleDateString()}$$ {date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+              ${r.notes ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${r.notes}</div>` : ''}
+            </div>
+            <div>
+              <div class="bp-reading-status ${classification.class}">${classification.status}</div>
+              <button onclick="deleteBPReading(${r.id})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px; margin-top: 8px;">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      openModal('BP History', html);
+    }
+
+    function showBPStats() {
+      const readings = getBPReadings();
+      
+      if (readings.length === 0) {
+        const content = `
+          <div class="empty-state">
+            <i class="fas fa-chart-line"></i>
+            <h3>No Data Yet</h3>
+            <p>Add BP readings to see statistics</p>
+            <button class="btn mt-3" onclick="navigateToSub(showAddBP)">
+              <i class="fas fa-plus"></i> Add Reading
+            </button>
+          </div>
+        `;
+        openModal('BP Statistics', content);
+        return;
+      }
+      
+      const avg7 = getAverageBP(7);
+      const avg30 = getAverageBP(30);
+      
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 16px;">📊 BP Statistics</h3>
+          
+          ${avg7 ? `
+            <div class="stats-card" style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);">
+              <i class="fas fa-calendar-week" style="color: #3B82F6; font-size: 28px;"></i>
+              <h4>7-Day Average</h4>
+              <div class="value">$${avg7.systolic}/$$ {avg7.diastolic}</div>
+              <p class="subtitle">${avg7.count} readings</p>
+            </div>
+          ` : ''}
+          
+          ${avg30 ? `
+            <div class="stats-card" style="background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);">
+              <i class="fas fa-calendar-alt" style="color: #10B981; font-size: 28px;"></i>
+              <h4>30-Day Average</h4>
+              <div class="value">$${avg30.systolic}/$$ {avg30.diastolic}</div>
+              <p class="subtitle">${avg30.count} readings</p>
+            </div>
+          ` : ''}
+          
+          <button class="btn-secondary btn mt-2" onclick="exportBPData()">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+        </div>
+      `;
+      openModal('BP Statistics', content);
+    }
+
+    function exportBPData() {
+      const readings = getBPReadings();
+      if (!readings.length) {
+        alert('No BP data to export');
+        return;
+      }
+      
+      let csv = 'Date,Time,Systolic,Diastolic,Category,Notes\n';
+      readings.forEach(r => {
+        const date = new Date(r.timestamp);
+        const classification = classifyBP(r.systolic, r.diastolic);
+        csv += `$${date.toLocaleDateString()},$$ {date.toLocaleTimeString()},$${r.systolic},$$ {r.diastolic},"${classification.status}","${r.notes || ''}"\n`;
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bp-data-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      alert('✅ BP data exported successfully!');
+    }
+
+    // MEDICATIONS
+    function openMedications() {
+      currentSection = openMedications;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-plus-circle"></i>
+            <h4>Add Medication</h4>
+            <p>Track your meds</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-list"></i>
+            <h4>My Medications</h4>
+            <p>View all meds</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-bell"></i>
+            <h4>Reminders</h4>
+            <p>Never miss a dose</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Interactions</h4>
+            <p>Check drug interactions</p>
+          </div>
+        </div>
+        <div class="alert alert-info mt-3">
+          <strong>Coming Soon!</strong> Full medication tracking and reminder system.
+        </div>
+      `;
+      openModal('Medications', content);
+    }
+
+    // EXERCISE
+    function openExercise() {
+      currentSection = openExercise;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigate
+ToSub(showExerciseLibrary)">
+            <i class="fas fa-dumbbell"></i>
+            <h4>Exercise Library</h4>
+            <p>Workouts for 50+</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-calendar-check"></i>
+            <h4>Workout Planner</h4>
+            <p>Schedule exercises</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-chart-line"></i>
+            <h4>Activity Tracker</h4>
+            <p>Log your workouts</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-trophy"></i>
+            <h4>Challenges</h4>
+            <p>Stay motivated</p>
+          </div>
+        </div>
+      `;
+      openModal('Exercise', content);
+    }
+
+    function showExerciseLibrary() {
+      const exercises = [
+        { name: 'Brisk Walking', type: 'Cardio', time: '30 min', level: 'Beginner' },
+        { name: 'Swimming', type: 'Cardio', time: '30 min', level: 'Low Impact' },
+        { name: 'Chair Yoga', type: 'Flexibility', time: '20 min', level: 'Beginner' },
+        { name: 'Resistance Bands', type: 'Strength', time: '25 min', level: 'Intermediate' },
+        { name: 'Water Aerobics', type: 'Cardio', time: '45 min', level: 'Low Impact' },
+        { name: 'Tai Chi', type: 'Balance', time: '30 min', level: 'Beginner' }
+      ];
+      
+      let html = '<div class="p-2"><h3 style="color: var(--primary); margin-bottom: 16px;">🏃 Exercise Library</h3>';
+      
+      exercises.forEach(ex => {
+        html += `
+          <div class="feature-card" onclick="alert('Exercise details coming soon!')">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <h4>${ex.name}</h4>
+                <p>${ex.type} • ${ex.time} • ${ex.level}</p>
+              </div>
+              <i class="fas fa-play-circle" style="color: var(--primary); font-size: 24px;"></i>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `
+        <div class="alert alert-warning mt-3">
+          <strong>Important:</strong> Always consult your doctor before starting a new exercise program, especially if you have heart conditions or high blood pressure.
+        </div>
+      </div>`;
+      
+      openModal('Exercise Library', html);
+    }
+
+    // PROGRESS
+    function openProgress() {
+      currentSection = openProgress;
+      const content = `
+        <div class="feature-grid">
+          <div class="feature-card" onclick="navigateToSub(showProgressOverview)">
+            <i class="fas fa-chart-line"></i>
+            <h4>Progress Overview</h4>
+            <p>Your health journey</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-weight-scale"></i>
+            <h4>Weight Tracker</h4>
+            <p>Track your weight</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-medal"></i>
+            <h4>Milestones</h4>
+            <p>Celebrate achievements</p>
+          </div>
+          <div class="feature-card" onclick="alert('Coming soon!')">
+            <i class="fas fa-camera"></i>
+            <h4>Progress Photos</h4>
+            <p>Visual tracking</p>
+          </div>
+        </div>
+      `;
+      openModal('Progress Tracker', content);
+    }
+
+    function showProgressOverview() {
+      const avgBP = getAverageBP(30);
+      const totalReadings = getBPReadings().length;
+      
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 20px;">
+            <i class="fas fa-trophy"></i> Your Progress
+          </h3>
+          
+          <div style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 64px; margin-bottom: 12px;">🏆</div>
+            <h4 style="margin-bottom: 8px;">Great Job!</h4>
+            <p style="color: var(--text-secondary); margin: 0;">You're taking control of your health</p>
+          </div>
+          
+          <div class="stats-card" style="background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);">
+            <i class="fas fa-heart-pulse" style="color: #3B82F6; font-size: 28px;"></i>
+            <h4>Total BP Readings</h4>
+            <div class="value">${totalReadings}</div>
+            <p class="subtitle">Keep tracking regularly</p>
+          </div>
+          
+          ${avgBP ? `
+            <div class="stats-card" style="background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);">
+              <i class="fas fa-chart-line" style="color: #10B981; font-size: 28px;"></i>
+              <h4>30-Day Average BP</h4>
+              <div class="value">$${avgBP.systolic}/$$ {avgBP.diastolic}</div>
+              <p class="subtitle">Based on ${avgBP.count} readings</p>
+            </div>
+          ` : `
+            <div class="alert alert-info">
+              <strong>Start Tracking:</strong> Add more BP readings to see detailed progress statistics.
+            </div>
+          `}
+          
+          <div class="stats-card" style="background: linear-gradient(135deg, #FEF3C7 0%, #FED7AA 100%);">
+            <i class="fas fa-fire" style="color: #F59E0B; font-size: 28px;"></i>
+            <h4>Daily Streak</h4>
+            <div class="value">7 days</div>
+            <p class="subtitle">Keep it going!</p>
+          </div>
+        </div>
+      `;
+      openModal('Progress Overview', content);
+    }
+
+    // HELP & SETTINGS
+    function showHelp() {
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 20px;">
+            <i class="fas fa-question-circle"></i> Help & Support
+          </h3>
+          
+          <div class="feature-card">
+            <i class="fas fa-book-open" style="color: #3B82F6;"></i>
+            <h4>Getting Started Guide</h4>
+            <p>Learn how to use the app</p>
+          </div>
+          
+          <div class="feature-card">
+            <i class="fas fa-video" style="color: #10B981;"></i>
+            <h4>Video Tutorials</h4>
+            <p>Watch step-by-step guides</p>
+          </div>
+          
+          <div class="feature-card">
+            <i class="fas fa-comments" style="color: #F59E0B;"></i>
+            <h4>FAQs</h4>
+            <p>Frequently asked questions</p>
+          </div>
+          
+          <div class="feature-card">
+            <i class="fas fa-envelope" style="color: #EF4444;"></i>
+            <h4>Contact Support</h4>
+            <p>Get help from our team</p>
+          </div>
+          
+          <div class="alert alert-info mt-3">
+            <strong>Tip:</strong> Use the AI Health Coach for quick answers to DASH diet and health questions!
+          </div>
+        </div>
+      `;
+      openModal('Help & Support', content);
+    }
+
+    function showSettings() {
+      const content = `
+        <div class="p-2">
+          <h3 style="color: var(--primary); margin-bottom: 20px;">
+            <i class="fas fa-gear"></i> Settings
+          </h3>
+          
+          <h4 style="margin-bottom: 12px;">Units of Measurement</h4>
+          <div class="form-group">
+            <label>Blood Pressure</label>
+            <select>
+              <option selected>mmHg (US Standard)</option>
+              <option>kPa (International)</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Weight</label>
+            <select>
+              <option selected>Pounds (lb)</option>
+              <option>Kilograms (kg)</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Height</label>
+            <select>
+              <option selected>Feet & Inches</option>
+              <option>Centimeters</option>
+            </select>
+          </div>
+          
+          <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+          
+          <h4 style="margin-bottom: 12px;">Notifications</h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+            <span>BP Measurement Reminders</span>
+            <input type="checkbox" checked style="width: auto;">
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+            <span>Medication Reminders</span>
+            <input type="checkbox" checked style="width: auto;">
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+            <span>Daily Motivation</span>
+            <input type="checkbox" checked style="width: auto;">
+          </div>
+          
+          <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+          
+          <h4 style="margin-bottom: 12px;">Data Management</h4>
+          
+          <button class="btn-secondary btn mb-2" onclick="exportAllData()">
+            <i class="fas fa-download"></i> Export All Data
+          </button>
+          
+          <button class="btn-danger btn" onclick="confirmClearData()">
+            <i class="fas fa-trash"></i> Clear All Data
+          </button>
+          
+          <div class="alert alert-warning mt-3">
+            <strong>Warning:</strong> Clearing data cannot be undone. Export your data first!
+          </div>
+        </div>
+      `;
+      openModal('Settings', content);
+    }
+
+    function exportAllData() {
+      const allData = {
+        bloodPressure: loadData(STORAGE_KEYS.bp),
+        medications: loadData(STORAGE_KEYS.meds),
+        meals: loadData(STORAGE_KEYS.meals),
+        weight: loadData(STORAGE_KEYS.weight),
+        exercise: loadData(STORAGE_KEYS.exercise),
+        exportDate: new Date().toISOString()
+      };
+      
+      const json = JSON.stringify(allData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dash-health-data-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      alert('✅ All data exported successfully!');
+    }
+
+    function confirmClearData() {
+      if (confirm('⚠️ Are you sure you want to delete ALL your health data? This cannot be undone!')) {
+        if (confirm('⚠️ Last chance! This will permanently delete all your blood pressure readings, medications, and other tracked data.')) {
+          localStorage.clear();
+          alert('✅ All data has been cleared.');
+          closeModal();
+        }
+      }
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DASH Over 50+ Health App loaded successfully');
+      
+      // Check if there are any BP readings
+      const readings = getBPReadings();
+      if (readings.length > 0) {
+        console.log(`Found ${readings.length} blood pressure readings`);
+      }
+    });
+  </script>
+</body>
+</html>
