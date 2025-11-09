@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>DASH Over 50+ - Health App</title>
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        :root {
+            --primary: #10B981;
+            --primary-dark: #059669;
+            --secondary: #3B82F6;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Navigation Cards */
+        .nav-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .nav-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .nav-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: var(--primary);
+        }
+
+        .nav-card i {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .nav-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .nav-card p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Modal System */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn, .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.3s ease;
+            margin-left: 8px;
+        }
+
+        .close-btn:hover, .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .feature-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .feature-card i {
+            font-size: 24px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .feature-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* AI Chat Styles */
+        .ai-chat {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .chat-message.user {
+            background: var(--primary);
+            color: white;
+            margin-left: 20%;
+        }
+
+        .chat-message.ai {
+            background: white;
+            border: 1px solid var(--border);
+            margin-right: 20%;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .chat-input button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .chat-input button:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .nav-cards {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .nav-card {
+                padding: 16px;
+            }
+
+            .nav-card i {
+                font-size: 28px;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>DASH Over 50+</h1>
+            <p>Your Complete Health Companion</p>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="nav-cards">
+            <div class="nav-card" onclick="openAICoach()">
+                <i class="fas fa-brain"></i>
+                <h3>AI Coach</h3>
+                <p>Personal guide</p>
+            </div>
+            <div class="nav-card" onclick="openDashboard()">
+                <i class="fas fa-chart-pie"></i>
+                <h3>Dashboard</h3>
+                <p>Your stats</p>
+            </div>
+            <div class="nav-card" onclick="openEducation()">
+                <i class="fas fa-graduation-cap"></i>
+                <h3>Education</h3>
+                <p>5 pillars of health</p>
+            </div>
+            <div class="nav-card" onclick="openMeals()">
+                <i class="fas fa-apple-alt"></i>
+                <h3>Meals</h3>
+                <p>DASH recipes & plans</p>
+            </div>
+            <div class="nav-card" onclick="openBP()">
+                <i class="fas fa-heart-pulse"></i>
+                <h3>Blood Pressure</h3>
+                <p>Track & monitor</p>
+            </div>
+            <div class="nav-card" onclick="openMeds()">
+                <i class="fas fa-capsules"></i>
+                <h3>Medications</h3>
+                <p>Manage & reminders</p>
+            </div>
+            <div class="nav-card" onclick="openExercise()">
+                <i class="fas fa-person-running"></i>
+                <h3>Exercise</h3>
+                <p>Tailored for 50+</p>
+            </div>
+            <div class="nav-card" onclick="openProgress()">
+                <i class="fas fa-trophy"></i>
+                <h3>Progress</h3>
+                <p>Your health journey</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center;">
+                    <button class="back-btn" id="backBtn" onclick="goBack()" style="display: none;">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2 id="modalTitle">Section Title</h2>
+                </div>
+                <button class="close-btn" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                Content will be loaded here
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal Navigation System
+        let navigationHistory = [];
+        let currentSection = null;
+
+        function openModal(title, content, addToHistory = true) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = content;
+            document.getElementById('modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Show/hide back button based on history
+            const backBtn = document.getElementById('backBtn');
+            backBtn.style.display = navigationHistory.length > 0 ? 'flex' : 'none';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            navigationHistory = [];
+            currentSection = null;
+        }
+
+        function goBack() {
+            if (navigationHistory.length > 0) {
+                const previousFunction = navigationHistory.pop();
+                if (previousFunction && typeof previousFunction === 'function') {
+                    previousFunction();
+                }
+            }
+        }
+
+        function navigateToSub(subFunction, ...args) {
+            navigationHistory.push(currentSection);
+            subFunction(...args);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // AI Coach Functions
+        function openAICoach() {
+            currentSection = openAICoach;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showAIChat)">
+                        <i class="fas fa-message"></i>
+                        <h4>Chat</h4>
+                        <p>Ask anything about your health</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showAIPlans)">
+                        <i class="fas fa-clipboard-check"></i>
+                        <h4>Personal Plans</h4>
+                        <p>Customized for your needs</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showAIAnalysis)">
+                        <i class="fas fa-microscope"></i>
+                        <h4>Health Analysis</h4>
+                        <p>Your personal health insights</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showAIMotivation)">
+                        <i class="fas fa-star"></i>
+                        <h4>Daily Motivation</h4>
+                        <p>Stay inspired every day</p>
+                    </div>
+                </div>
+            `;
+            openModal('AI Coach', content, false);
+        }
+
+        function showAIChat() {
+            const content = `
+                <div class="ai-chat" id="chatContainer">
+                    <div class="chat-message ai">
+                        Hello! I'm your AI Health Coach. How can I help you today with your DASH diet and health journey?
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            `;
+            openModal('AI Health Chat', content);
+            setTimeout(() => document.getElementById('chatInput').focus(), 100);
+        }
+
+        function showAIPlans() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px; color: var(--primary);">📋 Personalized Plans</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card" onclick="navigateToSub(showNutritionPlan)">
+                            <i class="fas fa-utensils" style="color: #10b981;"></i>
+                            <h4>Nutrition Plan</h4>
+                            <p>Customized DASH meal plan</p>
+                        </div>
+                        <div class="feature-card" onclick="navigateToSub(showExercisePlan)">
+                            <i class="fas fa-dumbbell" style="color: #3b82f6;"></i>
+                            <h4>Exercise Plan</h4>
+                            <p>Tailored workout routine</p>
+                        </div>
+                        <div class="feature-card" onclick="navigateToSub(showDailySchedule)">
+                            <i class="fas fa-calendar-check" style="color: #f59e0b;"></i>
+                            <h4>Daily Schedule</h4>
+                            <p>Structured daily plan</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Personal Plans', content);
+        }
+
+        function showAIAnalysis() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px; color: var(--primary);">🔬 Health Analysis</h3>
+                    <div style="background: #f0f9ff; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 10px;">Your Health Score</h4>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="font-size: 36px; font-weight: bold; color: var(--success);">85%</div>
+                            <div style="flex: 1;">
+                                <div style="background: #e5e7eb; height: 12px; border-radius: 6px; overflow: hidden;">
+                                    <div style="width: 85%; height: 100%; background: linear-gradient(90deg, var(--success), var(--primary));"></div>
+                                </div>
+                                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 12px;">Excellent progress!</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="feature-grid">
+                        <div class="feature-card" onclick="navigateToSub(showBPAnalysis)">
+                            <i class="fas fa-heart-pulse" style="color: #ef4444;"></i>
+                            <h4>BP Trend</h4>
+                            <p>Detailed analysis</p>
+                        </div>
+                        <div class="feature-card" onclick="navigateToSub(showWeightAnalysis)">
+                            <i class="fas fa-weight" style="color: #3b82f6;"></i>
+                            <h4>Weight</h4>
+                            <p>Progress tracking</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Health Analysis', content);
+        }
+
+        function showAIMotivation() {
+            const content = `
+                <div style="padding: 20px; text-align: center;">
+                    <i class="fas fa-star" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
+                    <h3 style="margin-bottom: 15px;">Daily Motivation</h3>
+                    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); padding: 25px; border-radius: 12px; margin-bottom: 20px;">
+                        <p style="font-size: 18px; line-height: 1.6; font-style: italic; color: #92400e;">
+                            "Every healthy choice you make today is an investment in your tomorrow. Your future self will thank you for the care you're showing right now."
+                        </p>
+                    </div>
+                    <div class="feature-grid">
+                        <div class="feature-card" onclick="navigateToSub(showTodayTips)">
+                            <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
+                            <h4>Today's Tip</h4>
+                            <p>Daily health tips</p>
+                        </div>
+                        <div class="feature-card" onclick="navigateToSub(showSmallGoals)">
+                            <i class="fas fa-bullseye" style="color: #10b981;"></i>
+                            <h4>Small Goal</h4>
+                            <p>Achievable targets</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Daily Motivation', content);
+        }
+
+        // Sub-functions for AI Coach
+        function showNutritionPlan() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">🥗 Your Nutrition Plan</h3>
+                    <div style="background: #ecfdf5; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4>Week 1 Focus: Reduce Sodium</h4>
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>No added salt to meals</li>
+                            <li>Choose low-sodium alternatives</li>
+                            <li>Read food labels carefully</li>
+                            <li>Drink plenty of water</li>
+                        </ul>
+                    </div>
+                    <button onclick="alert('Full nutrition plan would be displayed here')" style="width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer;">
+                        View Complete 4-Week Plan
+                    </button>
+                </div>
+            `;
+            openModal('Nutrition Plan', content);
+        }
+
+        function showExercisePlan() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">🏃 Your Exercise Plan</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>Monday</h4>
+                            <p>30 min brisk walk</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Wednesday</h4>
+                            <p>20 min strength training</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Friday</h4>
+                            <p>30 min cycling</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Saturday</h4>
+                            <p>Yoga & stretching</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Exercise Plan', content);
+        }
+
+        function showDailySchedule() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">📅 Daily Schedule</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="padding: 12px; background: #f0f9ff; border-radius: 8px;">
+                            <strong>7:00 AM</strong> - Blood pressure reading
+                        </div>
+                        <div style="padding: 12px; background: #ecfdf5; border-radius: 8px;">
+                            <strong>8:00 AM</strong> - Healthy breakfast
+                        </div>
+                        <div style="padding: 12px; background: #fef3c7; border-radius: 8px;">
+                            <strong>12:00 PM</strong> - Balanced lunch
+                        </div>
+                        <div style="padding: 12px; background: #f0f9ff; border-radius: 8px;">
+                            <strong>3:00 PM</strong> - 10-min walk break
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Daily Schedule', content);
+        }
+
+        function showBPAnalysis() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">❤️ Blood Pressure Analysis</h3>
+                    <p>Your BP has improved by 8% over the past month. Keep up the great work with your DASH diet!</p>
+                    <div style="margin-top: 20px; padding: 15px; background: #dcfce7; border-radius: 8px;">
+                        <strong>Recommendation:</strong> Continue current medication and dietary plan. Next checkup in 2 weeks.
+                    </div>
+                </div>
+            `;
+            openModal('BP Analysis', content);
+        }
+
+        function showWeightAnalysis() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">⚖️ Weight Progress</h3>
+                    <p>You've lost 3.2 lbs in the past 3 weeks. You're on track to reach your goal!</p>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: var(--success);">2.8 lbs to goal!</div>
+                    </div>
+                </div>
+            `;
+            openModal('Weight Analysis', content);
+        }
+
+        function showTodayTips() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">💡 Today's Health Tips</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div>• Add one extra serving of vegetables to lunch</div>
+                        <div>• Take stairs instead of elevator when possible</div>
+                        <div>• Drink water before each meal</div>
+                        <div>• Practice 5 minutes of deep breathing</div>
+                    </div>
+                </div>
+            `;
+            openModal("Today's Tips", content);
+        }
+
+        function showSmallGoals() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">🎯 Today's Small Goal</h3>
+                    <div style="background: #fef3c7; padding: 20px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">🚶‍♂️</div>
+                        <h4>Take a 10-minute walk after dinner</h4>
+                        <p style="margin-top: 10px; color: #92400e;">This helps digestion and improves blood pressure!</p>
+                    </div>
+                </div>
+            `;
+            openModal("Today's Goal", content);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatContainer = document.getElementById('chatContainer');
+            
+            chatContainer.innerHTML += `<div class="chat-message user">${message}</div>`;
+            input.value = '';
+            
+            setTimeout(() => {
+                const responses = [
+                    "That's a great question! Based on the DASH diet principles, I recommend focusing on reducing sodium and increasing potassium-rich foods.",
+                    "For adults over 50, it's important to monitor blood pressure regularly. The DASH diet has been shown to help reduce BP by 8-14 points.",
+                    "Exercise is crucial! Aim for 150 minutes of moderate activity per week, combined with strength training twice weekly.",
+                    "Remember to stay hydrated and get adequate sleep. Both are essential for managing blood pressure effectively."
+                ];
+                const response = responses[Math.floor(Math.random() * responses.length)];
+                chatContainer.innerHTML += `<div class="chat-message ai">${response}</div>`;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 1000);
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Dashboard Functions
+        function openDashboard() {
+            currentSection = openDashboard;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showDashboardStats)">
+                        <i class="fas fa-chart-pie" style="color: #3b82f6;"></i>
+                        <h4>Dashboard</h4>
+                        <p>Overall health view</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showAchievements)">
+                        <i class="fas fa-award" style="color: #f59e0b;"></i>
+                        <h4>Achievements</h4>
+                        <p>Your health milestones</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showReports)">
+                        <i class="fas fa-file-medical" style="color: #10b981;"></i>
+                        <h4>Reports</h4>
+                        <p>Generate health summaries</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showGoals)">
+                        <i class="fas fa-bullseye" style="color: #ef4444;"></i>
+                        <h4>Goals</h4>
+                        <p>Track personal targets</p>
+                    </div>
+                </div>
+            `;
+            openModal('Health Dashboard', content, false);
+        }
+
+        function openEducation() {
+            currentSection = openEducation;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showNutrition)">
+                        <i class="fas fa-carrot" style="color: #10b981;"></i>
+                        <h4>Nutrition</h4>
+                        <p>DASH diet principles</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showMovement)">
+                        <i class="fas fa-walking" style="color: #3b82f6;"></i>
+                        <h4>Movement</h4>
+                        <p>Exercise for 50+</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showStress)">
+                        <i class="fas fa-spa" style="color: #8b5cf6;"></i>
+                        <h4>Stress Management</h4>
+                        <p>Relaxation techniques</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showSleep)">
+                        <i class="fas fa-bed" style="color: #6366f1;"></i>
+                        <h4>Sleep</h4>
+                        <p>Quality rest tips</p>
+                    </div>
+                </div>
+            `;
+            openModal('Health Education', content, false);
+        }
+
+        function openMeals() {
+            currentSection = openMeals;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showMealPlan)">
+                        <i class="fas fa-calendar-days"></i>
+                        <h4>Meal Plan</h4>
+                        <p>4-week schedule</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showRecipes)">
+                        <i class="fas fa-book-medical"></i>
+                        <h4>Recipes</h4>
+                        <p>34+ DASH meals</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showMealPlanner)">
+                        <i class="fas fa-bowl-food"></i>
+                        <h4>Meal Planner</h4>
+                        <p>Create custom meals</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showNutritionTracker)">
+                        <i class="fas fa-scale-balanced"></i>
+                        <h4>Nutrition Tracker</h4>
+                        <p>Monitor nutrients</p>
+                    </div>
+                </div>
+            `;
+            openModal('DASH Meals', content, false);
+        }
+
+        function openBP() {
+            currentSection = openBP;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showLogBP)">
+                        <i class="fas fa-heart"></i>
+                        <h4>Log BP</h4>
+                        <p>Add readings</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showBPHistory)">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        <h4>History</h4>
+                        <p>View records</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showBPCharts)">
+                        <i class="fas fa-chart-area"></i>
+                        <h4>Charts</h4>
+                        <p>Visual trends</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showBPGoals)">
+                        <i class="fas fa-bullseye"></i>
+                        <h4>Goals</h4>
+                        <p>Set targets</p>
+                    </div>
+                </div>
+            `;
+            openModal('Blood Pressure Tracking', content, false);
+        }
+
+        function openMeds() {
+            currentSection = openMeds;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showMyMeds)">
+                        <i class="fas fa-capsules"></i>
+                        <h4>My Medications</h4>
+                        <p>Medication list</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showMedReminders)">
+                        <i class="fas fa-bell-concierge"></i>
+                        <h4>Reminders</h4>
+                        <p>Dose alerts</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showMedSchedule)">
+                        <i class="fas fa-calendar-days"></i>
+                        <h4>Schedule</h4>
+                        <p>Daily plan</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showMedInteractions)">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <h4>Interactions</h4>
+                        <p>Safety checks</p>
+                    </div>
+                </div>
+            `;
+            openModal('Medication Management', content, false);
+        }
+
+        function openExercise() {
+            currentSection = openExercise;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showExercisePrograms)">
+                        <i class="fas fa-person-running"></i>
+                        <h4>Programs</h4>
+                        <p>Workout plans</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showExerciseLibrary)">
+                        <i class="fas fa-book-open"></i>
+                        <h4>Exercise Library</h4>
+                        <p>Exercise videos</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showLogWorkout)">
+                        <i class="fas fa-dumbbell"></i>
+                        <h4>Log Workout</h4>
+                        <p>Track activity</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showExerciseProgress)">
+                        <i class="fas fa-medal"></i>
+                        <h4>Progress</h4>
+                        <p>Improvement</p>
+                    </div>
+                </div>
+            `;
+            openModal('Exercise Programs', content, false);
+        }
+
+        function openProgress() {
+            currentSection = openProgress;
+            const content = `
+                <div class="feature-grid">
+                    <div class="feature-card" onclick="navigateToSub(showProgressDashboard)">
+                        <i class="fas fa-chart-pie"></i>
+                        <h4>Dashboard</h4>
+                        <p>Overall view</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showProgressAchievements)">
+                        <i class="fas fa-award"></i>
+                        <h4>Achievements</h4>
+                        <p>Successes</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showProgressReports)">
+                        <i class="fas fa-file-medical"></i>
+                        <h4>Reports</h4>
+                        <p>Summary</p>
+                    </div>
+                    <div class="feature-card" onclick="navigateToSub(showProgressGoals)">
+                        <i class="fas fa-bullseye"></i>
+                        <h4>Goals</h4>
+                        <p>Targets</p>
+                    </div>
+                </div>
+            `;
+            openModal('Progress Tracking', content, false);
+        }
+
+        // Dashboard Functions
+        function showDashboardStats() {
+            const content = `
+                <div style="padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h3>Weekly Overview</h3>
+                        <p>Great progress this week!</p>
+                    </div>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-heart" style="color: #ef4444;"></i>
+                            <h4>Average BP</h4>
+                            <p>118/78 mmHg</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-fire" style="color: #f59e0b;"></i>
+                            <h4>Calories</h4>
+                            <p>1,850 daily avg</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Health Statistics', content);
+        }
+
+        function showAchievements() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3>Your Achievements</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-trophy" style="color: #f59e0b;"></i>
+                            <h4>7-Day Streak</h4>
+                            <p>Logged meals for a week!</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-medal" style="color: #3b82f6;"></i>
+                            <h4>BP Goal</h4>
+                            <p>Reached target BP range</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Your Achievements', content);
+        }
+
+        function showReports() {
+            const content = `
+                <div style="padding: 20px; text-align: center;">
+                    <i class="fas fa-file-medical" style="font-size: 48px; color: var(--primary); margin-bottom: 20px;"></i>
+                    <h3>Health Report Generator</h3>
+                    <button onclick="alert('Report generation would start here')" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">
+                        Generate Monthly Report
+                    </button>
+                </div>
+            `;
+            openModal('Health Reports', content);
+        }
+
+        function showGoals() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3>Health Goals</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-heart" style="color: #ef4444;"></i>
+                            <h4>Blood Pressure</h4>
+                            <p>Target: 120/80 mmHg</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-weight" style="color: #3b82f6;"></i>
+                            <h4>Weight Loss</h4>
+                            <p>Target: -10 lbs</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Health Goals', content);
+        }
+
+        // Education Functions
+        function showNutrition() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🥬 DASH Nutrition Guide</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-carrot" style="color: #10b981;"></i>
+                            <h4>Vegetables</h4>
+                            <p>4-5 servings daily</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-apple-whole" style="color: #ef4444;"></i>
+                            <h4>Fruits</h4>
+                            <p>4-5 servings daily</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Nutrition Education', content);
+        }
+
+        function showMovement() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🏃 Exercise for 50+</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-person-walking" style="color: #10b981;"></i>
+                            <h4>Cardio</h4>
+                            <p>150 min/week moderate</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-dumbbell" style="color: #3b82f6;"></i>
+                            <h4>Strength</h4>
+                            <p>2x per week</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Movement & Exercise', content);
+        }
+
+        function showStress() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🧘 Stress Management</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-lungs" style="color: #10b981;"></i>
+                            <h4>Deep Breathing</h4>
+                            <p>5 minutes, 3x daily</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-brain" style="color: #8b5cf6;"></i>
+                            <h4>Meditation</h4>
+                            <p>10-20 minutes daily</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Stress Management', content);
+        }
+
+        function showSleep() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">😴 Sleep Quality</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-clock" style="color: #3b82f6;"></i>
+                            <h4>Duration</h4>
+                            <p>7-9 hours nightly</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-moon" style="color: #8b5cf6;"></i>
+                            <h4>Consistency</h4>
+                            <p>Same bedtime daily</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Sleep Health', content);
+        }
+
+        // Meals Functions
+        function showMealPlan() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">📅 4-Week DASH Meal Plan</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>Week 1</h4>
+                            <p>Focus on reducing sodium</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Week 2</h4>
+                            <p>Add more vegetables</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Meal Plan', content);
+        }
+
+        function showRecipes() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">📚 DASH Recipe Collection</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-egg" style="color: #f59e0b;"></i>
+                            <h4>Breakfast</h4>
+                            <p>12 healthy options</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-bowl-food" style="color: #10b981;"></i>
+                            <h4>Lunch</h4>
+                            <p>15 balanced meals</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Recipe Collection', content);
+        }
+
+        function showMealPlanner() {
+            const content = `
+                <div style="padding: 20px; text-align: center;">
+                    <i class="fas fa-bowl-food" style="font-size: 48px; color: var(--primary); margin-bottom: 20px;"></i>
+                    <h3>Custom Meal Planner</h3>
+                    <button onclick="alert('Meal planner would open here')" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">
+                        Create New Plan
+                    </button>
+                </div>
+            `;
+            openModal('Meal Planner', content);
+        }
+
+        function showNutritionTracker() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">📊 Daily Nutrition</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-fire" style="color: #f59e0b;"></i>
+                            <h4>Calories</h4>
+                            <p>1,245 / 2,000</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-cube-salt" style="color: #ef4444;"></i>
+                            <h4>Sodium</h4>
+                            <p>890mg / 1,500mg</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Nutrition Tracker', content);
+        }
+
+        // BP Functions
+        function showLogBP() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">❤️ Log Blood Pressure</h3>
+                    <div style="display: grid; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Systolic (mmHg)</label>
+                            <input type="number" placeholder="120" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Diastolic (mmHg)</label>
+                            <input type="number" placeholder="80" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                        </div>
+                        <button onclick="alert('BP reading saved!')" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">
+                            Save Reading
+                        </button>
+                    </div>
+                </div>
+            `;
+            openModal('Log Blood Pressure', content);
+        }
+
+        function showBPHistory() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">📋 BP History</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="padding: 15px; background: var(--bg-primary); border-radius: 8px; border-left: 4px solid var(--success);">
+                            <strong>118/78 mmHg</strong>
+                            <p style="color: var(--text-secondary); font-size: 12px;">Today, 8:30 AM</p>
+                        </div>
+                        <div style="padding: 15px; background: var(--bg-primary); border-radius: 8px; border-left: 4px solid var(--warning);">
+                            <strong>135/88 mmHg</strong>
+                            <p style="color: var(--text-secondary); font-size: 12px;">Yesterday, 7:45 AM</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Blood Pressure History', content);
+        }
+
+        function showBPCharts() {
+            const content = `
+                <div style="padding: 20px; text-align: center;">
+                    <i class="fas fa-chart-line" style="font-size: 48px; color: var(--primary); margin-bottom: 20px;"></i>
+                    <h3>BP Trend Charts</h3>
+                    <p>Visualize your blood pressure trends over time</p>
+                </div>
+            `;
+            openModal('BP Charts', content);
+        }
+
+        function showBPGoals() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🎯 Blood Pressure Goals</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-bullseye" style="color: var(--success);"></i>
+                            <h4>Target BP</h4>
+                            <p>120/80 mmHg</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('BP Goals', content);
+        }
+
+        // Medication Functions
+        function showMyMeds() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">💊 My Medications</h3>
+                    <div style="display: grid; gap: 10px;">
+                        <div style="padding: 15px; background: var(--bg-primary); border-radius: 8px;">
+                            <strong>Lisinopril</strong>
+                            <p style="color: var(--text-secondary); font-size: 12px;">10mg - Once daily</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('My Medications', content);
+        }
+
+        function showMedReminders() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🔔 Medication Reminders</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-sun" style="color: #f59e0b;"></i>
+                            <h4>Morning</h4>
+                            <p>8:00 AM - Lisinopril</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Medication Reminders', content);
+        }
+
+        function showMedSchedule() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">📅 Daily Schedule</h3>
+                    <div style="padding: 15px; background: #fef3c7; border-radius: 8px;">
+                        <strong>8:00 AM</strong>
+                        <p>Lisinopril 10mg</p>
+                        <p style="margin: 0; font-size: 12px; color: #92400e;">Take with breakfast</p>
+                    </div>
+                </div>
+            `;
+            openModal('Medication Schedule', content);
+        }
+
+        function showMedInteractions() {
+            const content = `
+                <div style="padding: 20px; text-align: center;">
+                    <i class="fas fa-triangle-exclamation" style="font-size: 48px; color: var(--warning); margin-bottom: 20px;"></i>
+                    <h3>Medication Interactions</h3>
+                    <div style="margin-top: 30px; padding: 20px; background: #ecfdf5; border-radius: 12px;">
+                        <h4 style="color: var(--success);">No Interactions Found</h4>
+                    </div>
+                </div>
+            `;
+            openModal('Medication Interactions', content);
+        }
+
+        // Exercise Functions
+        function showExercisePrograms() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🏃 Exercise Programs</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-person-walking" style="color: #10b981;"></i>
+                            <h4>Beginner</h4>
+                            <p>Gentle start program</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-person-running" style="color: #3b82f6;"></i>
+                            <h4>Intermediate</h4>
+                            <p>Moderate intensity</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Exercise Programs', content);
+        }
+
+        function showExerciseLibrary() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">📚 Exercise Library</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-heart-pulse" style="color: #ef4444;"></i>
+                            <h4>Cardio</h4>
+                            <p>20+ exercises</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-dumbbell" style="color: #3b82f6;"></i>
+                            <h4>Strength</h4>
+                            <p>25+ exercises</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Exercise Library', content);
+        }
+
+        function showLogWorkout() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">✅ Log Workout</h3>
+                    <div style="display: grid; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Duration (minutes)</label>
+                            <input type="number" placeholder="30" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;">
+                        </div>
+                        <button onclick="alert('Workout logged successfully!')" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">
+                            Log Workout
+                        </button>
+                    </div>
+                </div>
+            `;
+            openModal('Log Workout', content);
+        }
+
+        function showExerciseProgress() {
+            const content = `
+                <div style="padding: 20px;">
+                    <h3 style="color: var(--primary);">🏆 Exercise Progress</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fas fa-fire" style="color: #ef4444;"></i>
+                            <h4>This Week</h4>
+                            <p>145 / 150 minutes</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('Exercise Progress', content);
+        }
+
+        // Progress Functions (reusing dashboard functions)
+        function showProgressDashboard() { showDashboardStats(); }
+        function showProgressAchievements() { showAchievements(); }
+        function showProgressReports() { showReports(); }
+        function showProgressGoals() { showGoals(); }
+    </script>
+</body>
+</html>
